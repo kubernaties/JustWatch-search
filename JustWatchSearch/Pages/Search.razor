@@ -29,47 +29,143 @@
 			<input type="text" class="form-control" @bind="SearchBoxInput" @bind:event="oninput"
 				   placeholder="Enter movie/show title..." />
 		</div>
-		<div class="table-responsive">
-			<table class="table table-striped table-hover">
-				<thead>
-					<tr>
-						<th>Type</th>
-						<th>Title</th>
-						<th>Release</th>
-						<th>IMDB</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					@foreach (var title in searchResponse.Result.TitleResults)
-					{
+
+		@if (!string.IsNullOrEmpty(SearchQueryParam))
+		{
+			<h3>Search Results</h3>
+		}
+
+		@if (searchResponse.Result.TitleResults.Any())
+		{
+			<div class="table-responsive">
+				<table class="table table-striped table-hover">
+					<thead>
 						<tr>
-							<td>@title?.Node?.ObjectType</td>
-							<td>@title?.Node?.Content?.Title</td>
-							<td>@title?.Node?.Content?.OriginalReleaseYear</td>
-							<td>
-								@if (!string.IsNullOrEmpty(title?.Node?.Content?.ExternalIds?.ImdbId))
-								{
-									<a href="https://www.imdb.com/title/@title.Node.Content.ExternalIds.ImdbId" target="_blank">
-										@title.Node.Content.ExternalIds.ImdbId
-									</a>
-								}
-							</td>
-							<td>
-								<Button class="btn btn-primary" @onclick="() => OpenMovie(title?.Node)">Prices</Button> <a class="btn btn-primary" target="_blank"
-																											   href="@($"https://www.justwatch.com{title?.Node?.Content?.FullPath}")">
-									Justwatch
-								</a>
-							</td>
+							<th>Type</th>
+							<th>Title</th>
+							<th>Release Date</th>
+							<th>IMDB</th>
+							<th></th>
 						</tr>
-					}
-				</tbody>
-			</table>
-		</div>
+					</thead>
+					<tbody>
+						@foreach (var title in searchResponse.Result.TitleResults)
+						{
+							<tr>
+								<td>@title?.Node?.ObjectType</td>
+								<td>@title?.Node?.Content?.Title</td>
+								<td>@GetReleaseInfo(title?.Node)</td>
+								<td>
+									@if (!string.IsNullOrEmpty(title?.Node?.Content?.ExternalIds?.ImdbId))
+									{
+										<a href="https://www.imdb.com/title/@title.Node.Content.ExternalIds.ImdbId" target="_blank">
+											@title.Node.Content.ExternalIds.ImdbId
+										</a>
+									}
+								</td>
+								<td>
+									<Button class="btn btn-primary btn-sm" @onclick="() => OpenMovie(title?.Node)">Prices</Button> 
+									<a class="btn btn-primary btn-sm" target="_blank"
+									   href="@($"https://www.justwatch.com{title?.Node?.Content?.FullPath}")">
+										JustWatch
+									</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+
+		@if (string.IsNullOrEmpty(SearchQueryParam) && upcomingResponse != null && upcomingResponse.Result.TitleResults.Any())
+		{
+			<h3 class="mt-4">Upcoming Releases</h3>
+			<div class="table-responsive">
+				<table class="table table-striped table-hover">
+					<thead>
+						<tr>
+							<th>Type</th>
+							<th>Title</th>
+							<th>Release Date</th>
+							<th>IMDB</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var title in upcomingResponse.Result.TitleResults.Take(10))
+						{
+							<tr>
+								<td>@title?.Node?.ObjectType</td>
+								<td>@title?.Node?.Content?.Title</td>
+								<td>@GetReleaseInfo(title?.Node)</td>
+								<td>
+									@if (!string.IsNullOrEmpty(title?.Node?.Content?.ExternalIds?.ImdbId))
+									{
+										<a href="https://www.imdb.com/title/@title.Node.Content.ExternalIds.ImdbId" target="_blank">
+											@title.Node.Content.ExternalIds.ImdbId
+										</a>
+									}
+								</td>
+								<td>
+									<Button class="btn btn-primary btn-sm" @onclick="() => OpenMovie(title?.Node)">Prices</Button> 
+									<a class="btn btn-primary btn-sm" target="_blank"
+									   href="@($"https://www.justwatch.com{title?.Node?.Content?.FullPath}")">
+										JustWatch
+									</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+
+		@if (string.IsNullOrEmpty(SearchQueryParam) && popularResponse != null && popularResponse.Result.TitleResults.Any())
+		{
+			<h3 class="mt-4">Popular Movies & TV Shows</h3>
+			<div class="table-responsive">
+				<table class="table table-striped table-hover">
+					<thead>
+						<tr>
+							<th>Type</th>
+							<th>Title</th>
+							<th>Release Date</th>
+							<th>IMDB</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var title in popularResponse.Result.TitleResults.Take(10))
+						{
+							<tr>
+								<td>@title?.Node?.ObjectType</td>
+								<td>@title?.Node?.Content?.Title</td>
+								<td>@GetReleaseInfo(title?.Node)</td>
+								<td>
+									@if (!string.IsNullOrEmpty(title?.Node?.Content?.ExternalIds?.ImdbId))
+									{
+										<a href="https://www.imdb.com/title/@title.Node.Content.ExternalIds.ImdbId" target="_blank">
+											@title.Node.Content.ExternalIds.ImdbId
+										</a>
+									}
+								</td>
+								<td>
+									<Button class="btn btn-primary btn-sm" @onclick="() => OpenMovie(title?.Node)">Prices</Button> 
+									<a class="btn btn-primary btn-sm" target="_blank"
+									   href="@($"https://www.justwatch.com{title?.Node?.Content?.FullPath}")">
+										JustWatch
+									</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
 	}
 	else
 	{
-		<div class="d-flex justify-content-center">
+		<div class="d-flex justify-content-center mt-5">
 			<div class="spinner-border text-primary" role="status">
 				<span class="sr-only"></span>
 			</div>
@@ -89,6 +185,8 @@
 
 	private string? _searchQuery { get; set; }
 	private SearchTitlesResponse? searchResponse;
+	private SearchTitlesResponse? upcomingResponse;
+	private SearchTitlesResponse? popularResponse;
 	private TitleNode? selectedTitle;
 	private string? errorMessage;
 
@@ -103,7 +201,7 @@
 		{
 			if (string.IsNullOrEmpty(NodeId))
 			{
-				await SearchMovies("");
+				await LoadDefaultContent();
 			}
 		}
 		catch (Exception ex)
@@ -132,6 +230,33 @@
 		{
 			errorMessage = $"Error processing parameters: {ex.Message}";
 			Console.Error.WriteLine($"Error in OnParametersSetAsync: {ex}");
+		}
+	}
+
+	private async Task LoadDefaultContent()
+	{
+		try
+		{
+			errorMessage = null;
+			
+			// Load both upcoming and popular titles in parallel for better performance
+			var upcomingTask = _justWatchService.GetUpcomingTitlesAsync();
+			var popularTask = _justWatchService.GetPopularTitlesAsync();
+			
+			await Task.WhenAll(upcomingTask, popularTask);
+			
+			upcomingResponse = await upcomingTask;
+			popularResponse = await popularTask;
+			searchResponse = new SearchTitlesResponse(); // Initialize to show UI
+			
+			StateHasChanged();
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error loading default content: {ex.Message}";
+			Console.Error.WriteLine($"Error in LoadDefaultContent: {ex}");
+			searchResponse = new SearchTitlesResponse();
+			StateHasChanged();
 		}
 	}
 
@@ -164,7 +289,17 @@
 		try
 		{
 			errorMessage = null;
-			searchResponse = await _justWatchService.SearchTitlesAsync(query ?? "", token);
+			
+			if (string.IsNullOrWhiteSpace(query))
+			{
+				// If search is cleared, reload default content
+				await LoadDefaultContent();
+			}
+			else
+			{
+				searchResponse = await _justWatchService.SearchTitlesAsync(query ?? "", token);
+			}
+			
 			StateHasChanged();
 		}
 		catch (TaskCanceledException)
@@ -227,5 +362,40 @@
 			errorMessage = $"Error navigating back: {ex.Message}";
 			Console.Error.WriteLine($"Error in Goback: {ex}");
 		}
+	}
+
+	private string GetReleaseInfo(TitleNode? node)
+	{
+		if (node?.Content == null) return "N/A";
+		
+		if (!string.IsNullOrEmpty(node.Content.OriginalReleaseDate))
+		{
+			if (DateTime.TryParse(node.Content.OriginalReleaseDate, out var releaseDate))
+			{
+				var daysUntilRelease = (releaseDate - DateTime.UtcNow).Days;
+				
+				if (daysUntilRelease > 0)
+				{
+					return $"{releaseDate:MMM dd, yyyy} ({daysUntilRelease} days)";
+				}
+				else if (daysUntilRelease == 0)
+				{
+					return $"{releaseDate:MMM dd, yyyy} (Today!)";
+				}
+				else
+				{
+					return $"{releaseDate:MMM dd, yyyy}";
+				}
+			}
+			
+			return node.Content.OriginalReleaseDate;
+		}
+		
+		if (node.Content.OriginalReleaseYear > 0)
+		{
+			return node.Content.OriginalReleaseYear.ToString();
+		}
+		
+		return "N/A";
 	}
 }
