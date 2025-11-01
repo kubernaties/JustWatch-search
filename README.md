@@ -222,6 +222,8 @@ Railway is a modern platform that makes deploying .NET applications simple, with
 
 This project includes Railway configuration files (`start.sh`, `nixpacks.toml`, `railway.json`, and `Procfile`) that enable automatic deployment.
 
+> **⚠️ Important:** If your production deployment is not working, see [FIXING_PRODUCTION.md](FIXING_PRODUCTION.md) for step-by-step instructions on how to configure the `PROXY_URL` environment variable.
+
 ### Prerequisites
 
 1. A [Railway account](https://railway.app/) (free tier available)
