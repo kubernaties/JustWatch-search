@@ -134,14 +134,14 @@ query GetUpcomingTitles(
     }
   ) {
     edges {
-      ...SearchTitleGraphql
+      ...UpcomingTitleGraphql
       __typename
     }
     __typename
   }
 }
 
-fragment SearchTitleGraphql on PopularTitlesEdge {
+fragment UpcomingTitleGraphql on PopularTitlesEdge {
   node {
     id
     objectId

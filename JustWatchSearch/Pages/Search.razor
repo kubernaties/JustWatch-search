@@ -240,13 +240,13 @@
 			errorMessage = null;
 			
 			// Load both upcoming and popular titles in parallel for better performance
-			var upcomingTask = _justWatchService.GetUpcomingTitlesAsync();
-			var popularTask = _justWatchService.GetPopularTitlesAsync();
+			var results = await Task.WhenAll(
+				_justWatchService.GetUpcomingTitlesAsync(),
+				_justWatchService.GetPopularTitlesAsync()
+			);
 			
-			await Task.WhenAll(upcomingTask, popularTask);
-			
-			upcomingResponse = upcomingTask.Result;
-			popularResponse = popularTask.Result;
+			upcomingResponse = results[0];
+			popularResponse = results[1];
 			searchResponse = new SearchTitlesResponse(); // Initialize to show UI
 			
 			StateHasChanged();
@@ -372,7 +372,8 @@
 		{
 			if (DateTime.TryParse(node.Content.OriginalReleaseDate, out var releaseDate))
 			{
-				var daysUntilRelease = (releaseDate - DateTime.UtcNow).Days;
+				var today = DateTime.Today;
+				var daysUntilRelease = (releaseDate.Date - today).Days;
 				
 				if (daysUntilRelease > 0)
 				{
