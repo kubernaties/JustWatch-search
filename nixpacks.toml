@@ -2,7 +2,7 @@
 # This tells Railway/Nixpacks how to build and run the .NET application
 
 [phases.setup]
-nixPkgs = ["dotnet-sdk_8", "dotnet-runtime_8"]
+nixPkgs = ["dotnet-sdk_8"]
 
 [phases.install]
 cmds = [
