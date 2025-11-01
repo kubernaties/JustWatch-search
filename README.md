@@ -507,7 +507,7 @@ curl http://localhost:8080/
   "service": "JustWatch Proxy Server",
   "version": "1.0.0",
   "status": "running",
-  "timestamp": "2025-11-01T12:00:00Z",
+  "timestamp": "2024-01-01T12:00:00Z",
   "endpoints": {
     "health": "/health",
     "graphql": "/graphql (POST)",
