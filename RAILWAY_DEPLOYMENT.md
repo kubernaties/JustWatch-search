@@ -28,7 +28,7 @@ Deploy both services from the same repository:
 2. Connect to this GitHub repository
 3. Set environment variables:
    - `SERVICE=frontend`
-   - `ProxyUrl=<your-proxy-service-url>`
+   - `PROXY_URL=<your-proxy-service-url>` (e.g., `https://your-proxy.railway.app`)
 4. Deploy
 
 ### Option 2: Using Root Directory
@@ -44,7 +44,7 @@ Deploy both services from the same repository:
 1. Add another service to the same Railway project
 2. Connect to this GitHub repository
 3. Set **Root Directory**: `JustWatchSearch`
-4. Set environment variable: `ProxyUrl=<your-proxy-service-url>`
+4. Set environment variable: `PROXY_URL=<your-proxy-service-url>` (e.g., `https://your-proxy.railway.app`)
 5. Set **Start Command**: `dotnet run --project JustWatchSearch.csproj`
 6. Deploy
 
@@ -56,7 +56,7 @@ Deploy both services from the same repository:
 
 ### Frontend Service
 - `SERVICE=frontend` (if using Option 1)
-- `ProxyUrl` - URL of your deployed proxy service (e.g., `https://your-proxy.railway.app`)
+- `PROXY_URL` - URL of your deployed proxy service (e.g., `https://your-proxy.railway.app`)
 
 ## Build Process
 
@@ -79,9 +79,10 @@ Railway uses Nixpacks to automatically:
 - For frontend: `ProxyUrl` must be set to your deployed proxy service URL
 
 ### Frontend Can't Connect to Proxy
-- Verify the `ProxyUrl` environment variable is set correctly
+- Verify the `PROXY_URL` environment variable is set correctly in the frontend service
 - Ensure the proxy service is running and accessible
 - Check that CORS is properly configured in the proxy service
+- Verify that `appsettings.json` was updated during build with the correct proxy URL
 
 ## Testing Locally
 
