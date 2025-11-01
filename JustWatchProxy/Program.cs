@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using JustWatchProxy.Helpers;
 
@@ -174,6 +175,25 @@ app.MapGet("/content/urls", async (HttpContext context, IHttpClientFactory httpC
         context.Response.StatusCode = 500;
         await context.Response.WriteAsJsonAsync(new { error = "Internal server error", message = ex.Message });
     }
+});
+
+// Root endpoint - Service information
+app.MapGet("/", () =>
+{
+    var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0";
+    return Results.Ok(new
+    {
+        service = "JustWatch Proxy Server",
+        version,
+        status = "running",
+        timestamp = DateTime.UtcNow,
+        endpoints = new
+        {
+            health = "/health",
+            graphql = "/graphql (POST)",
+            contentUrls = "/content/urls?path={path} (GET)"
+        }
+    });
 });
 
 // Health check endpoint
