@@ -20,15 +20,17 @@ public partial class JustwatchApiService : IJustwatchApiService
 	private readonly GraphQLHttpClient _graphQLClient;
 	private readonly ILogger<JustwatchApiService> _logger;
 	private readonly ICurrencyConverter _currencyConverter;
-	// Use local proxy for development:
-	private readonly string _baseAddress = "http://localhost:8080";
-	// Previous external CORS proxy (kept for reference):
-	// private readonly string _baseAddress = "https://cors-proxy.cooks.fyi/https://apis.justwatch.com";
+	private readonly string _baseAddress;
 
-	public JustwatchApiService(ILogger<JustwatchApiService> logger, ICurrencyConverter currencyConverter)
+	public JustwatchApiService(ILogger<JustwatchApiService> logger, ICurrencyConverter currencyConverter, IConfiguration configuration)
 	{
 		_logger = logger;
 		_currencyConverter = currencyConverter;
+		
+		// Get proxy URL from configuration, default to localhost:8080
+		_baseAddress = configuration["ProxyUrl"] ?? "http://localhost:8080";
+		_logger.LogInformation("Using proxy URL: {ProxyUrl}", _baseAddress);
+		
 		_graphQLClient = new GraphQLHttpClient($"{_baseAddress}/graphql", new SystemTextJsonSerializer());
 	}
 
@@ -74,6 +76,86 @@ public partial class JustwatchApiService : IJustwatchApiService
 		{
 			_logger.LogError(ex, "Searching title {Input} failed", LoggingHelper.SanitizeForLogging(input));
 			throw new InvalidOperationException($"Failed to search for titles: {ex.Message}", ex);
+		}
+	}
+
+	public async Task<SearchTitlesResponse> GetUpcomingTitlesAsync(CancellationToken? token)
+	{
+		try
+		{
+			if (_graphQLClient == null)
+			{
+				_logger.LogError("GraphQL client is not initialized");
+				throw new InvalidOperationException("GraphQL client is not initialized");
+			}
+
+			_logger.LogInformation("Fetching upcoming titles");
+			var searchResult = await _graphQLClient.SendQueryAsync<SearchTitlesResponse>(
+				JustWatchGraphQLQueries.GetUpcomingTitlesQuery(), 
+				token ?? default);
+
+			if (searchResult == null)
+			{
+				_logger.LogWarning("Received null result for upcoming titles");
+				return new SearchTitlesResponse();
+			}
+
+			return searchResult.Data ?? new SearchTitlesResponse();
+		}
+		catch (TaskCanceledException)
+		{
+			_logger.LogInformation("Get upcoming titles request was cancelled");
+			throw;
+		}
+		catch (HttpRequestException ex)
+		{
+			_logger.LogError(ex, "HTTP error while getting upcoming titles");
+			throw new InvalidOperationException($"Failed to connect to JustWatch API: {ex.Message}", ex);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Getting upcoming titles failed");
+			throw new InvalidOperationException($"Failed to get upcoming titles: {ex.Message}", ex);
+		}
+	}
+
+	public async Task<SearchTitlesResponse> GetPopularTitlesAsync(CancellationToken? token)
+	{
+		try
+		{
+			if (_graphQLClient == null)
+			{
+				_logger.LogError("GraphQL client is not initialized");
+				throw new InvalidOperationException("GraphQL client is not initialized");
+			}
+
+			_logger.LogInformation("Fetching popular titles");
+			var searchResult = await _graphQLClient.SendQueryAsync<SearchTitlesResponse>(
+				JustWatchGraphQLQueries.GetPopularTitlesQuery(), 
+				token ?? default);
+
+			if (searchResult == null)
+			{
+				_logger.LogWarning("Received null result for popular titles");
+				return new SearchTitlesResponse();
+			}
+
+			return searchResult.Data ?? new SearchTitlesResponse();
+		}
+		catch (TaskCanceledException)
+		{
+			_logger.LogInformation("Get popular titles request was cancelled");
+			throw;
+		}
+		catch (HttpRequestException ex)
+		{
+			_logger.LogError(ex, "HTTP error while getting popular titles");
+			throw new InvalidOperationException($"Failed to connect to JustWatch API: {ex.Message}", ex);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Getting popular titles failed");
+			throw new InvalidOperationException($"Failed to get popular titles: {ex.Message}", ex);
 		}
 	}
 

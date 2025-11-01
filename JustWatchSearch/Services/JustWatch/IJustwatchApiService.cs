@@ -7,6 +7,8 @@ public interface IJustwatchApiService
 {
 	Task<IEnumerable<TitleOfferViewModel>?> GetAllOffers(string nodeId, string path, CancellationToken? token = null);
 	Task<SearchTitlesResponse> SearchTitlesAsync(string input, CancellationToken? token = null);
+	Task<SearchTitlesResponse> GetUpcomingTitlesAsync(CancellationToken? token = null);
+	Task<SearchTitlesResponse> GetPopularTitlesAsync(CancellationToken? token = null);
 	Task<TitleNode?> GetTitle(string nodeId, CancellationToken? token = null);
 	Task<UrlMetadataResponse?> GetUrlMetadataResponseAsync(string path);
 }

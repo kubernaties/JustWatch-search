@@ -9,6 +9,9 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddBlazorBootstrap();
 
+// Load configuration from appsettings.json
+builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+
 builder.Services.AddSingleton<IJustwatchApiService, JustwatchApiService>();
 builder.Services.AddSingleton<ICurrencyConverter, CurrencyConverter>();
 

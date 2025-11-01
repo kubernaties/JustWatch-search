@@ -4,20 +4,27 @@ A web application that allows users to search for movies and TV shows on JustWat
 
 ## 🎯 Features
 
-- Search for movies and TV shows from the JustWatch database
-- View streaming availability across multiple countries
-- Compare prices and platforms
-- Modern, responsive UI built with Blazor WebAssembly
-- CORS-enabled proxy server for API access
+- **Homepage Display**: See upcoming Hollywood movie & TV series releases and popular titles by default
+- **Release Date Information**: View release dates with countdown (days until release)
+- **Search Functionality**: Search for movies and TV shows from the JustWatch database
+- **Streaming Availability**: View streaming availability across multiple countries
+- **Price Comparison**: Compare prices and platforms
+- **Modern UI**: Responsive UI built with Blazor WebAssembly
+- **CORS-enabled Proxy**: Server for API access
+- **Railway Deployment Ready**: Easy deployment to Railway without Docker
 
 ## 🏗️ Architecture
 
 This project consists of two main components:
 
-1. **JustWatchProxy** - A C# ASP.NET Core API that acts as a proxy to the JustWatch API (runs on port 8080)
-2. **JustWatchSearch** - A Blazor WebAssembly frontend application (runs on port 5000)
+1. **JustWatchProxy** - A C# ASP.NET Core API that acts as a proxy to the JustWatch API
+   - Configurable port via `PORT` environment variable (default: 8080)
+   - Supports deployment on platforms like Railway with dynamic port assignment
+2. **JustWatchSearch** - A Blazor WebAssembly frontend application
+   - Configurable proxy URL via `appsettings.json`
+   - Default local development: http://localhost:5000
 
-Both components must run simultaneously for the application to work.
+Both components must run simultaneously for the application to work. For production deployments (like Railway), they can be hosted separately or together.
 
 ---
 
@@ -209,39 +216,85 @@ Then open **http://localhost:5000** in your browser.
 
 ---
 
-## 🐳 Running with Docker
+## 🚂 Deploying to Railway
 
-> ⚠️ **Note:** Docker deployment has not been fully tested yet. Use at your own discretion.
+Railway is a modern platform that makes deploying .NET applications simple, with automatic port detection and no Docker required.
 
-### Install Docker
+### Prerequisites
 
-- **Windows:** https://docs.docker.com/desktop/install/windows-install/
-- **macOS:** https://docs.docker.com/desktop/install/mac-install/
-- **Linux:** https://docs.docker.com/engine/install/
+1. A [Railway account](https://railway.app/) (free tier available)
+2. [Railway CLI](https://docs.railway.app/develop/cli) (optional, but recommended)
 
-### Pull and Run Pre-built Image
+### Deployment Steps
+
+#### Option 1: Deploy via Railway Web UI (Recommended)
+
+1. **Create a New Project on Railway**
+   - Go to [Railway Dashboard](https://railway.app/dashboard)
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Connect and select your repository
+
+2. **Configure the Proxy Service**
+   - Railway will auto-detect the .NET application
+   - Set the following environment variables:
+     - `PORT`: Railway will auto-assign this (no need to set manually)
+   - Set the **Root Directory** to `JustWatchProxy`
+   - Set **Start Command**: `dotnet run --project JustWatchProxy.csproj`
+
+3. **Configure the Frontend Service**
+   - Create another service in the same project
+   - Set the **Root Directory** to `JustWatchSearch`
+   - Set the following environment variable:
+     - `ProxyUrl`: URL of your proxy service (e.g., `https://your-proxy.railway.app`)
+   - Update `JustWatchSearch/wwwroot/appsettings.json`:
+     ```json
+     {
+       "ProxyUrl": "https://your-proxy-service.railway.app"
+     }
+     ```
+   - Set **Start Command**: `dotnet run --project JustWatchSearch.csproj`
+
+4. **Deploy**
+   - Railway will automatically build and deploy both services
+   - Each service will get its own public URL
+   - The frontend will be accessible at its Railway-assigned URL
+
+#### Option 2: Deploy via Railway CLI
 
 ```bash
-# Pull the latest image
-docker pull ghcr.io/nobraincellsleft/justwatch-search:latest
+# Install Railway CLI (if not already installed)
+npm i -g @railway/cli
 
-# Run the container
-docker run -p 8080:80 ghcr.io/nobraincellsleft/justwatch-search:latest
+# Login to Railway
+railway login
+
+# Initialize project
+railway init
+
+# Deploy Proxy Service
+cd JustWatchProxy
+railway up
+
+# Deploy Frontend Service (in a new terminal)
+cd JustWatchSearch
+# Update appsettings.json with proxy URL first
+railway up
 ```
 
-Then open: **http://localhost:8080**
+### Configuration for Railway
 
-### Build from Source
+The application is already configured to work with Railway:
 
-```bash
-# Build the Docker image
-docker build -t justwatch-search .
+- **Proxy Server**: Reads port from `PORT` environment variable (Railway auto-assigns this)
+- **Frontend**: Reads proxy URL from `appsettings.json` or environment configuration
 
-# Run the container
-docker run -p 8080:80 justwatch-search
-```
+### Important Notes
 
-Then open: **http://localhost:8080**
+- Railway automatically assigns ports - no need for Docker port mapping
+- Both services need to be running for the application to work
+- Update the `ProxyUrl` in the frontend's `appsettings.json` to point to your deployed proxy service
+- Railway's free tier includes 500 hours of usage per month
 
 ---
 
@@ -488,7 +541,7 @@ Give a ⭐️ if this project helped you!
 
 ## 📌 Quick Start Cheatsheet
 
-### First Time Setup
+### First Time Setup (Local Development)
 
 ```bash
 # 1. Clone
@@ -508,7 +561,7 @@ dotnet run
 # 4. Open http://localhost:5000 in browser
 ```
 
-### Subsequent Runs
+### Subsequent Runs (Local Development)
 
 ```bash
 # Terminal 1
@@ -520,14 +573,22 @@ cd JustWatchSearch
 dotnet run
 ```
 
-### Docker (⚠️ Not Fully Tested)
+### Railway Deployment (Production)
 
 ```bash
-docker pull ghcr.io/nobraincellsleft/justwatch-search:latest
-docker run -p 8080:80 ghcr.io/nobraincellsleft/justwatch-search:latest
-# Open http://localhost:8080
+# 1. Deploy Proxy Service
+# - Set Root Directory: JustWatchProxy
+# - Railway auto-assigns PORT
+
+# 2. Deploy Frontend Service  
+# - Set Root Directory: JustWatchSearch
+# - Update appsettings.json with proxy URL
+# - Deploy
+
+# Both services get their own URLs
+# Access via the frontend service URL
 ```
 
 ---
 
-**Last Updated:** 2025-10-28
+**Last Updated:** 2025-11-01
