@@ -12,7 +12,7 @@ if [ "$SERVICE" = "proxy" ]; then
 elif [ "$SERVICE" = "frontend" ]; then
     echo "Starting JustWatch Frontend..."
     cd JustWatchSearch
-    dotnet run --project JustWatchSearch.csproj
+    dotnet run --project JustWatchSearch.csproj --urls "http://0.0.0.0:${PORT:-5000}"
 else
     echo "Unknown service: $SERVICE"
     echo "Please set SERVICE environment variable to 'proxy' or 'frontend'"
