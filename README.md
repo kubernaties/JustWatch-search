@@ -149,7 +149,7 @@ info: Microsoft.Hosting.Lifetime[0]
 
 ✅ **Keep this terminal running!** Do NOT close it.
 
-> **Note:** If you see 404 errors when accessing `http://localhost:8080/` directly, this is normal. The proxy server doesn't have a homepage - it only responds to specific API endpoints.
+> **Note:** You can verify the proxy server is running by accessing `http://localhost:8080/` which will display service information and available endpoints.
 
 ---
 
@@ -386,6 +386,7 @@ The proxy server (port 8080) exposes:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/` | GET | Service information and available endpoints |
 | `/graphql` | POST | GraphQL queries to JustWatch API |
 | `/content/urls?path=<path>` | GET | Fetch content metadata |
 | `/health` | GET | Health check endpoint |
@@ -486,18 +487,33 @@ dotnet run --urls "http://localhost:9000"
 
 ---
 
-### 404 Error on Proxy
+### Verifying Proxy Server is Running
 
-**Issue:** Getting 404 when accessing `http://localhost:8080/`
+**Issue:** How to verify the proxy server is running?
 
-**Explanation:** This is **normal**! The proxy doesn't have a homepage. Test with:
+**Solution:** Access the root endpoint to see service information:
 
 ```bash
 # Windows (PowerShell)
-Invoke-WebRequest -Uri http://localhost:8080/health
+Invoke-WebRequest -Uri http://localhost:8080/
 
 # Linux/macOS
-curl http://localhost:8080/health
+curl http://localhost:8080/
+```
+
+**Expected response:**
+```json
+{
+  "service": "JustWatch Proxy Server",
+  "version": "1.0.0",
+  "status": "running",
+  "timestamp": "2025-11-01T12:00:00Z",
+  "endpoints": {
+    "health": "/health",
+    "graphql": "/graphql (POST)",
+    "contentUrls": "/content/urls?path={path} (GET)"
+  }
+}
 ```
 
 ---

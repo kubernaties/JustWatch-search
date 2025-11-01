@@ -176,6 +176,21 @@ app.MapGet("/content/urls", async (HttpContext context, IHttpClientFactory httpC
     }
 });
 
+// Root endpoint - Service information
+app.MapGet("/", () => Results.Ok(new
+{
+    service = "JustWatch Proxy Server",
+    version = "1.0.0",
+    status = "running",
+    timestamp = DateTime.UtcNow,
+    endpoints = new
+    {
+        health = "/health",
+        graphql = "/graphql (POST)",
+        contentUrls = "/content/urls?path={path} (GET)"
+    }
+}));
+
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
