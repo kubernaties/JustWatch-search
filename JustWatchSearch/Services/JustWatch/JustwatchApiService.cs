@@ -1,5 +1,6 @@
 ﻿using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
+using JustWatchSearch.Helpers;
 using JustWatchSearch.Models;
 using JustWatchSearch.Services.JustWatch.Responses;
 using System;
@@ -53,7 +54,7 @@ public partial class JustwatchApiService : IJustwatchApiService
 
 			if (searchResult == null)
 			{
-				_logger.LogWarning("Received null search result for input: {input}", input);
+				_logger.LogWarning("Received null search result for input: {Input}", LoggingHelper.SanitizeForLogging(input));
 				return new SearchTitlesResponse();
 			}
 
@@ -61,17 +62,17 @@ public partial class JustwatchApiService : IJustwatchApiService
 		}
 		catch (TaskCanceledException)
 		{
-			_logger.LogInformation("Search request was cancelled for input: {input}", input);
+			_logger.LogInformation("Search request was cancelled for input: {Input}", LoggingHelper.SanitizeForLogging(input));
 			throw;
 		}
 		catch (HttpRequestException ex)
 		{
-			_logger.LogError(ex, "HTTP error while searching for title: {input}", input);
+			_logger.LogError(ex, "HTTP error while searching for title: {Input}", LoggingHelper.SanitizeForLogging(input));
 			throw new InvalidOperationException($"Failed to connect to JustWatch API: {ex.Message}", ex);
 		}
 		catch (Exception ex)
 		{
-			_logger.LogError(ex, "Searching title {input} failed", input);
+			_logger.LogError(ex, "Searching title {Input} failed", LoggingHelper.SanitizeForLogging(input));
 			throw new InvalidOperationException($"Failed to search for titles: {ex.Message}", ex);
 		}
 	}

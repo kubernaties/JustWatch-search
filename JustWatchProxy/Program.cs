@@ -1,4 +1,5 @@
 using System.Text;
+using JustWatchProxy.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -133,7 +134,7 @@ app.MapGet("/content/urls", async (HttpContext context, IHttpClientFactory httpC
         
         if (response == null)
         {
-            logger.LogError("Received null response from JustWatch API for path: {Path}", path);
+            logger.LogError("Received null response from JustWatch API for path: {Path}", LoggingHelper.SanitizeForLogging(path));
             context.Response.StatusCode = 502;
             await context.Response.WriteAsJsonAsync(new { error = "No response from upstream API" });
             return;
