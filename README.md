@@ -261,9 +261,8 @@ This application consists of two services that can be deployed separately on Rai
    
 2. **Configure the Frontend Service**
    - Set the environment variable `SERVICE` to `frontend`
-   - Update the frontend to point to your proxy service:
-     - Either set an environment variable `ProxyUrl` to your proxy service URL
-     - Or update `JustWatchSearch/wwwroot/appsettings.json` with the proxy URL before deploying
+   - Set the environment variable `PROXY_URL` to your proxy service URL (e.g., `https://your-proxy.railway.app`)
+     - This will automatically update the frontend configuration during build
    - Click "Deploy"
 
 3. **Access Your Application**
@@ -320,21 +319,21 @@ This repository includes the following Railway configuration files:
 
 **Frontend Service:**
 - `SERVICE=frontend` - Tells the startup script to run the frontend
-- `ProxyUrl` - URL of your deployed proxy service (e.g., `https://your-proxy.railway.app`)
+- `PROXY_URL` - URL of your deployed proxy service (e.g., `https://your-proxy.railway.app`)
 
 ### Configuration for Railway
 
 The application is already configured to work with Railway:
 
 - **Proxy Server**: Reads port from `PORT` environment variable (Railway auto-assigns this)
-- **Frontend**: Reads proxy URL from `appsettings.json` or environment configuration
+- **Frontend**: Reads proxy URL from `PROXY_URL` environment variable during build and injects it into configuration
 - **Nixpacks**: Automatically installs .NET 8 SDK and builds both projects
 
 ### Important Notes
 
 - Railway automatically assigns ports - no need for Docker port mapping
 - Both services need to be running for the application to work
-- Update the `ProxyUrl` in the frontend's configuration to point to your deployed proxy service
+- Set the `PROXY_URL` environment variable in the frontend service to point to your deployed proxy service
 - Railway's free tier includes 500 hours of usage per month (across all projects)
 - The `start.sh` script is executable and will be run by Railway on startup
 

@@ -13,7 +13,9 @@ cmds = [
 [phases.build]
 cmds = [
     "dotnet build JustWatchProxy/JustWatchProxy.csproj --configuration Release --no-restore",
-    "dotnet build JustWatchSearch/JustWatchSearch.csproj --configuration Release --no-restore"
+    "dotnet build JustWatchSearch/JustWatchSearch.csproj --configuration Release --no-restore",
+    "chmod +x update-appsettings.sh",
+    "./update-appsettings.sh"
 ]
 
 [start]
