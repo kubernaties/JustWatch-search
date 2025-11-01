@@ -245,8 +245,8 @@
 			
 			await Task.WhenAll(upcomingTask, popularTask);
 			
-			upcomingResponse = await upcomingTask;
-			popularResponse = await popularTask;
+			upcomingResponse = upcomingTask.Result;
+			popularResponse = popularTask.Result;
 			searchResponse = new SearchTitlesResponse(); // Initialize to show UI
 			
 			StateHasChanged();
