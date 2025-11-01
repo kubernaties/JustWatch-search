@@ -8,9 +8,13 @@ public class CurrencyConverter : ICurrencyConverter
 	private const string _apiUrl = "https://open.er-api.com/v6/latest/USD";
 	private ExchangeRateResponse? _rates;
 	private bool _initialized = false;
-	private readonly object _lock = new object();
+	private readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
+	private readonly ILogger<CurrencyConverter>? _logger;
 
-	public CurrencyConverter() { }
+	public CurrencyConverter(ILogger<CurrencyConverter>? logger = null)
+	{
+		_logger = logger;
+	}
 
 	public async Task InitializeAsync()
 	{
@@ -19,27 +23,26 @@ public class CurrencyConverter : ICurrencyConverter
 			return;
 		}
 
-		lock (_lock)
+		await _initLock.WaitAsync();
+		try
 		{
 			if (_initialized)
 			{
 				return;
 			}
 
-			try
-			{
-				// Run synchronously in a lock to prevent race conditions
-				Task.Run(async () => await FetchExchangeRatesAsync()).GetAwaiter().GetResult();
-				_initialized = true;
-			}
-			catch (Exception ex)
-			{
-				Console.Error.WriteLine($"Failed to initialize currency converter: {ex.Message}");
-				throw new InvalidOperationException("Failed to initialize currency converter", ex);
-			}
+			await FetchExchangeRatesAsync();
+			_initialized = true;
 		}
-		
-		await Task.CompletedTask;
+		catch (Exception ex)
+		{
+			_logger?.LogError(ex, "Failed to initialize currency converter");
+			throw new InvalidOperationException("Failed to initialize currency converter", ex);
+		}
+		finally
+		{
+			_initLock.Release();
+		}
 	}
 
 	private async Task FetchExchangeRatesAsync()
@@ -102,11 +105,13 @@ public class CurrencyConverter : ICurrencyConverter
 		{
 			if (!_initialized)
 			{
+				_logger?.LogError("Currency converter not initialized");
 				throw new InvalidOperationException("Currency converter not initialized. Call InitializeAsync first.");
 			}
 
 			if (_rates == null)
 			{
+				_logger?.LogError("Exchange rates not available");
 				throw new InvalidOperationException("Exchange rates not available");
 			}
 
@@ -117,13 +122,13 @@ public class CurrencyConverter : ICurrencyConverter
 
 			if (string.IsNullOrWhiteSpace(currencyCode))
 			{
-				Console.Error.WriteLine("Currency code is null or empty, returning placeholder value");
+				_logger?.LogWarning("Currency code is null or empty, returning placeholder value");
 				return 999;
 			}
 
 			if (!_rates.Rates.ContainsKey(currencyCode))
 			{
-				Console.Error.WriteLine($"Currency code '{currencyCode}' not found in exchange rates, returning placeholder value");
+				_logger?.LogWarning("Currency code '{CurrencyCode}' not found in exchange rates, returning placeholder value", currencyCode);
 				return 999;
 			}
 
@@ -131,7 +136,7 @@ public class CurrencyConverter : ICurrencyConverter
 			
 			if (exchangeRate <= 0)
 			{
-				Console.Error.WriteLine($"Invalid exchange rate for currency '{currencyCode}', returning placeholder value");
+				_logger?.LogWarning("Invalid exchange rate for currency '{CurrencyCode}', returning placeholder value", currencyCode);
 				return 999;
 			}
 
@@ -139,12 +144,12 @@ public class CurrencyConverter : ICurrencyConverter
 		}
 		catch (DivideByZeroException ex)
 		{
-			Console.Error.WriteLine($"Division by zero when converting currency: {ex.Message}");
+			_logger?.LogError(ex, "Division by zero when converting currency");
 			return 999;
 		}
 		catch (Exception ex)
 		{
-			Console.Error.WriteLine($"Error converting currency: {ex.Message}");
+			_logger?.LogError(ex, "Error converting currency");
 			return 999;
 		}
 	}

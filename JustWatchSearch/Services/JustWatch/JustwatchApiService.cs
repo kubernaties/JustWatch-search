@@ -264,8 +264,12 @@ public partial class JustwatchApiService : IJustwatchApiService
 
 			var countries = locales
 				.Where(locale => !string.IsNullOrWhiteSpace(locale))
-				.Select(o => o.Split("_").LastOrDefault())
+				.Select(o => {
+					var parts = o.Split("_");
+					return parts.Length > 0 ? parts[parts.Length - 1] : null;
+				})
 				.Where(country => !string.IsNullOrWhiteSpace(country))
+				.Cast<string>()
 				.ToArray();
 
 			if (countries.Length == 0)
@@ -274,7 +278,7 @@ public partial class JustwatchApiService : IJustwatchApiService
 				return Enumerable.Empty<TitleOfferViewModel>();
 			}
 
-			var titleOffer = await GetTitleOffers(nodeId, countries!, token);
+			var titleOffer = await GetTitleOffers(nodeId, countries, token);
 			
 			if (titleOffer == null)
 			{

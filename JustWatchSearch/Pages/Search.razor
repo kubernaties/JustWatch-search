@@ -124,7 +124,7 @@
 			{
 				if (_searchQuery != SearchQueryParam)
 				{
-					await Task.Run(() => _ = SearchAsType(SearchQueryParam ?? ""));
+					await SearchAsType(SearchQueryParam ?? "");
 				}
 			}
 		}
