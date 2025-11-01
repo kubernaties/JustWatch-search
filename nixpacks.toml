@@ -1,0 +1,20 @@
+# Nixpacks configuration for Railway deployment
+# This tells Railway/Nixpacks how to build and run the .NET application
+
+[phases.setup]
+nixPkgs = ["dotnet-sdk_8", "dotnet-runtime_8"]
+
+[phases.install]
+cmds = [
+    "dotnet restore JustWatchProxy/JustWatchProxy.csproj",
+    "dotnet restore JustWatchSearch/JustWatchSearch.csproj"
+]
+
+[phases.build]
+cmds = [
+    "dotnet build JustWatchProxy/JustWatchProxy.csproj --configuration Release --no-restore",
+    "dotnet build JustWatchSearch/JustWatchSearch.csproj --configuration Release --no-restore"
+]
+
+[start]
+cmd = "./start.sh"

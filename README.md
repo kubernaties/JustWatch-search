@@ -220,45 +220,55 @@ Then open **http://localhost:5000** in your browser.
 
 Railway is a modern platform that makes deploying .NET applications simple, with automatic port detection and no Docker required.
 
+This project includes Railway configuration files (`start.sh`, `nixpacks.toml`, `railway.json`, and `Procfile`) that enable automatic deployment.
+
 ### Prerequisites
 
 1. A [Railway account](https://railway.app/) (free tier available)
 2. [Railway CLI](https://docs.railway.app/develop/cli) (optional, but recommended)
 
+### Deployment Architecture
+
+This application consists of two services that can be deployed separately on Railway:
+
+1. **JustWatchProxy** - Backend API service (runs on port assigned by Railway's `PORT` variable)
+2. **JustWatchSearch** - Frontend Blazor WebAssembly app
+
 ### Deployment Steps
 
 #### Option 1: Deploy via Railway Web UI (Recommended)
+
+**Step 1: Deploy the Proxy Service**
 
 1. **Create a New Project on Railway**
    - Go to [Railway Dashboard](https://railway.app/dashboard)
    - Click "New Project"
    - Select "Deploy from GitHub repo"
-   - Connect and select your repository
+   - Connect and select your `JustWatch-search` repository
 
 2. **Configure the Proxy Service**
-   - Railway will auto-detect the .NET application
-   - Set the following environment variables:
-     - `PORT`: Railway will auto-assign this (no need to set manually)
-   - Set the **Root Directory** to `JustWatchProxy`
-   - Set **Start Command**: `dotnet run --project JustWatchProxy.csproj`
+   - Railway will auto-detect the .NET application using the provided configuration files
+   - Set the environment variable `SERVICE` to `proxy`
+   - Railway will automatically set the `PORT` environment variable
+   - Click "Deploy"
+   - Note the public URL assigned to this service (e.g., `https://your-proxy.railway.app`)
 
-3. **Configure the Frontend Service**
-   - Create another service in the same project
-   - Set the **Root Directory** to `JustWatchSearch`
-   - Set the following environment variable:
-     - `ProxyUrl`: URL of your proxy service (e.g., `https://your-proxy.railway.app`)
-   - Update `JustWatchSearch/wwwroot/appsettings.json`:
-     ```json
-     {
-       "ProxyUrl": "https://your-proxy-service.railway.app"
-     }
-     ```
-   - Set **Start Command**: `dotnet run --project JustWatchSearch.csproj`
+**Step 2: Deploy the Frontend Service**
 
-4. **Deploy**
-   - Railway will automatically build and deploy both services
-   - Each service will get its own public URL
+1. **Add a New Service to the Same Project**
+   - In your Railway project, click "New Service"
+   - Select "GitHub Repo" and choose the same repository
+   
+2. **Configure the Frontend Service**
+   - Set the environment variable `SERVICE` to `frontend`
+   - Update the frontend to point to your proxy service:
+     - Either set an environment variable `ProxyUrl` to your proxy service URL
+     - Or update `JustWatchSearch/wwwroot/appsettings.json` with the proxy URL before deploying
+   - Click "Deploy"
+
+3. **Access Your Application**
    - The frontend will be accessible at its Railway-assigned URL
+   - Both services are now running and communicating
 
 #### Option 2: Deploy via Railway CLI
 
@@ -273,14 +283,44 @@ railway login
 railway init
 
 # Deploy Proxy Service
-cd JustWatchProxy
 railway up
+# Then set SERVICE=proxy in Railway dashboard
 
-# Deploy Frontend Service (in a new terminal)
-cd JustWatchSearch
-# Update appsettings.json with proxy URL first
-railway up
+# For the frontend, create another service in the same project via the dashboard
+# Set SERVICE=frontend and configure the ProxyUrl
 ```
+
+#### Option 3: Deploy Using Root Directory (Alternative)
+
+Instead of using the `SERVICE` environment variable, you can deploy each service separately by setting the **Root Directory**:
+
+**For Proxy Service:**
+- Set **Root Directory** to `JustWatchProxy`
+- Set **Start Command**: `dotnet run --project JustWatchProxy.csproj --urls "http://0.0.0.0:${PORT:-8080}"`
+
+**For Frontend Service:**
+- Set **Root Directory** to `JustWatchSearch`
+- Set **Start Command**: `dotnet run --project JustWatchSearch.csproj`
+- Set environment variable `ProxyUrl` to your proxy service URL
+
+### Configuration Files
+
+This repository includes the following Railway configuration files:
+
+- **`start.sh`**: Startup script that determines which service to run based on the `SERVICE` environment variable
+- **`nixpacks.toml`**: Build configuration for Railway's Nixpacks builder
+- **`railway.json`**: Railway-specific deployment configuration
+- **`Procfile`**: Process file for service startup
+
+### Environment Variables
+
+**Proxy Service:**
+- `SERVICE=proxy` - Tells the startup script to run the proxy server
+- `PORT` - Automatically set by Railway (default: 8080)
+
+**Frontend Service:**
+- `SERVICE=frontend` - Tells the startup script to run the frontend
+- `ProxyUrl` - URL of your deployed proxy service (e.g., `https://your-proxy.railway.app`)
 
 ### Configuration for Railway
 
@@ -288,13 +328,15 @@ The application is already configured to work with Railway:
 
 - **Proxy Server**: Reads port from `PORT` environment variable (Railway auto-assigns this)
 - **Frontend**: Reads proxy URL from `appsettings.json` or environment configuration
+- **Nixpacks**: Automatically installs .NET 8 SDK and builds both projects
 
 ### Important Notes
 
 - Railway automatically assigns ports - no need for Docker port mapping
 - Both services need to be running for the application to work
-- Update the `ProxyUrl` in the frontend's `appsettings.json` to point to your deployed proxy service
-- Railway's free tier includes 500 hours of usage per month
+- Update the `ProxyUrl` in the frontend's configuration to point to your deployed proxy service
+- Railway's free tier includes 500 hours of usage per month (across all projects)
+- The `start.sh` script is executable and will be run by Railway on startup
 
 ---
 
