@@ -1,5 +1,13 @@
 @inject IJustwatchApiService _justWatchService
 
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+	<div class="alert alert-danger alert-dismissible fade show" role="alert">
+		<strong>Error:</strong> @errorMessage
+		<button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+	</div>
+}
+
 @if (Title != null && Title.Content != null)
 {
 	<div class="card mb-4">
@@ -67,21 +75,89 @@ else
 	[Parameter]
 	public string? NodeId { get; set; }
 	private IEnumerable<TitleOfferViewModel>? titleOffers;
+	private string? errorMessage;
 
 	protected override async Task OnInitializedAsync()
 	{
-		if(Title is null && NodeId is not null)
-			Title = await _justWatchService.GetTitle(NodeId);
+		try
+		{
+			if (Title is null && NodeId is not null)
+			{
+				Title = await _justWatchService.GetTitle(NodeId);
+			}
 
-		if (Title is null || Title.Content is null)
-			throw new ArgumentNullException(nameof(Title));
+			if (Title is null)
+			{
+				errorMessage = "Title not found or invalid title ID";
+				Console.Error.WriteLine($"Title is null for NodeId: {NodeId}");
+				return;
+			}
 
-		NodeId = Title.Id;
-		titleOffers = await _justWatchService.GetAllOffers(Title.Id, Title.Content.FullPath);
+			if (Title.Content is null)
+			{
+				errorMessage = "Title content is not available";
+				Console.Error.WriteLine($"Title.Content is null for NodeId: {NodeId}");
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(Title.Id))
+			{
+				errorMessage = "Invalid title ID";
+				Console.Error.WriteLine("Title.Id is null or empty");
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(Title.Content.FullPath))
+			{
+				errorMessage = "Title path information is not available";
+				Console.Error.WriteLine("Title.Content.FullPath is null or empty");
+				return;
+			}
+
+			NodeId = Title.Id;
+			titleOffers = await _justWatchService.GetAllOffers(Title.Id, Title.Content.FullPath);
+
+			if (titleOffers == null)
+			{
+				errorMessage = "Failed to load offers for this title";
+				Console.Error.WriteLine($"GetAllOffers returned null for NodeId: {NodeId}");
+				titleOffers = Enumerable.Empty<TitleOfferViewModel>();
+			}
+		}
+		catch (TaskCanceledException)
+		{
+			errorMessage = "Request was cancelled";
+			Console.Error.WriteLine("OnInitializedAsync was cancelled");
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+			Console.Error.WriteLine($"Error in OnInitializedAsync: {ex}");
+			titleOffers = Enumerable.Empty<TitleOfferViewModel>();
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
+			Console.Error.WriteLine($"Unexpected error in OnInitializedAsync: {ex}");
+			titleOffers = Enumerable.Empty<TitleOfferViewModel>();
+		}
 	}
 
 	private async Task<GridDataProviderResult<TitleOfferViewModel>> OffersDataProvider(GridDataProviderRequest<TitleOfferViewModel> request)
 	{
-		return await Task.FromResult(request.ApplyTo(titleOffers ?? []));
+		try
+		{
+			if (titleOffers == null)
+			{
+				return await Task.FromResult(request.ApplyTo(Enumerable.Empty<TitleOfferViewModel>()));
+			}
+			return await Task.FromResult(request.ApplyTo(titleOffers));
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error loading offers data: {ex.Message}";
+			Console.Error.WriteLine($"Error in OffersDataProvider: {ex}");
+			return await Task.FromResult(request.ApplyTo(Enumerable.Empty<TitleOfferViewModel>()));
+		}
 	}
 }

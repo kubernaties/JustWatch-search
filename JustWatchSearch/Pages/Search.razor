@@ -8,6 +8,14 @@
 <PageTitle>JustWatch Search</PageTitle>
 
 <div class="container mt-3">
+	@if (!string.IsNullOrEmpty(errorMessage))
+	{
+		<div class="alert alert-danger alert-dismissible fade show" role="alert">
+			<strong>Error:</strong> @errorMessage
+			<button type="button" class="btn-close" @onclick="() => errorMessage = null" aria-label="Close"></button>
+		</div>
+	}
+
 	@if (NodeId != null)
 	{
 		<button class="btn btn-secondary mb-3" @onclick="Goback" aria-label="Go back">Back</button>
@@ -82,6 +90,7 @@
 	private string? _searchQuery { get; set; }
 	private SearchTitlesResponse? searchResponse;
 	private TitleNode? selectedTitle;
+	private string? errorMessage;
 
 	private CancellationTokenSource? debounceCancellationToken;
 
@@ -90,55 +99,133 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		if (string.IsNullOrEmpty(NodeId))
+		try
 		{
-			await SearchMovies("");
+			if (string.IsNullOrEmpty(NodeId))
+			{
+				await SearchMovies("");
+			}
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Initialization error: {ex.Message}";
+			Console.Error.WriteLine($"Error in OnInitializedAsync: {ex}");
 		}
 	}
 
 	protected override async Task OnParametersSetAsync()
 	{
-		var uri = new Uri(_navigationManager.Uri);
-		var hasTitle = uri.Segments.Length > 1 && uri.Segments[1].TrimEnd('/') == "title";
-
-		if (string.IsNullOrEmpty(NodeId))
+		try
 		{
-			if (_searchQuery != SearchQueryParam)
+			var uri = new Uri(_navigationManager.Uri);
+			var hasTitle = uri.Segments.Length > 1 && uri.Segments[1].TrimEnd('/') == "title";
+
+			if (string.IsNullOrEmpty(NodeId))
 			{
-				_ = SearchAsType(SearchQueryParam);
+				if (_searchQuery != SearchQueryParam)
+				{
+					await SearchAsType(SearchQueryParam ?? "");
+				}
 			}
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error processing parameters: {ex.Message}";
+			Console.Error.WriteLine($"Error in OnParametersSetAsync: {ex}");
 		}
 	}
 
 	private async Task SearchAsType(string query)
 	{
-		_searchQuery = SearchQueryParam;
-		debounceCancellationToken?.Cancel();
-		debounceCancellationToken = new CancellationTokenSource();
-		await Task.Delay(100, debounceCancellationToken.Token);
-		if (!debounceCancellationToken.Token.IsCancellationRequested)
+		try
 		{
-			await SearchMovies(query, debounceCancellationToken.Token);
+			_searchQuery = SearchQueryParam;
+			debounceCancellationToken?.Cancel();
+			debounceCancellationToken = new CancellationTokenSource();
+			await Task.Delay(100, debounceCancellationToken.Token);
+			if (!debounceCancellationToken.Token.IsCancellationRequested)
+			{
+				await SearchMovies(query, debounceCancellationToken.Token);
+			}
+		}
+		catch (TaskCanceledException)
+		{
+			// Expected when debouncing, can be ignored
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Search error: {ex.Message}";
+			Console.Error.WriteLine($"Error in SearchAsType: {ex}");
 		}
 	}
+
 	private async Task SearchMovies(string query, CancellationToken? token = null)
 	{
-		searchResponse = await _justWatchService.SearchTitlesAsync(query, token);
-		StateHasChanged();
+		try
+		{
+			errorMessage = null;
+			searchResponse = await _justWatchService.SearchTitlesAsync(query ?? "", token);
+			StateHasChanged();
+		}
+		catch (TaskCanceledException)
+		{
+			// Expected when user cancels, can be ignored
+		}
+		catch (InvalidOperationException ex)
+		{
+			errorMessage = ex.Message;
+			Console.Error.WriteLine($"Error searching movies: {ex}");
+			searchResponse = new SearchTitlesResponse();
+			StateHasChanged();
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred while searching: {ex.Message}";
+			Console.Error.WriteLine($"Unexpected error in SearchMovies: {ex}");
+			searchResponse = new SearchTitlesResponse();
+			StateHasChanged();
+		}
 	}
 
 	private void OpenMovie(TitleNode? title)
 	{
-		if (title is null) return;
-		selectedTitle = title;
-		_navigationManager.NavigateTo($"title/{title.Id}");
+		try
+		{
+			if (title is null)
+			{
+				Console.Error.WriteLine("OpenMovie called with null title");
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(title.Id))
+			{
+				errorMessage = "Cannot open movie: Invalid title ID";
+				Console.Error.WriteLine("Title has null or empty ID");
+				return;
+			}
+
+			selectedTitle = title;
+			_navigationManager.NavigateTo($"title/{title.Id}");
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error opening movie: {ex.Message}";
+			Console.Error.WriteLine($"Error in OpenMovie: {ex}");
+		}
 	}
 
 	private void Goback()
 	{
-		selectedTitle = null;
-		NodeId = null;
-		_navigationManager.NavigateTo($"search?q={Uri.EscapeDataString(_searchQuery ?? "")}");
-
+		try
+		{
+			selectedTitle = null;
+			NodeId = null;
+			_navigationManager.NavigateTo($"search?q={Uri.EscapeDataString(_searchQuery ?? "")}");
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Error navigating back: {ex.Message}";
+			Console.Error.WriteLine($"Error in Goback: {ex}");
+		}
 	}
 }

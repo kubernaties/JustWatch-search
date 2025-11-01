@@ -1,4 +1,5 @@
 using System.Text;
+using JustWatchProxy.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,8 +44,24 @@ app.MapPost("/graphql", async (HttpContext context, IHttpClientFactory httpClien
 {
     try
     {
+        if (context.Request.Body == null)
+        {
+            logger.LogWarning("GraphQL request received with null body");
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsJsonAsync(new { error = "Request body is required" });
+            return;
+        }
+
         using var reader = new StreamReader(context.Request.Body);
         var requestBody = await reader.ReadToEndAsync();
+        
+        if (string.IsNullOrWhiteSpace(requestBody))
+        {
+            logger.LogWarning("GraphQL request received with empty body");
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsJsonAsync(new { error = "Request body cannot be empty" });
+            return;
+        }
         
         logger.LogInformation("Proxying GraphQL request to JustWatch API");
 
@@ -52,17 +69,38 @@ app.MapPost("/graphql", async (HttpContext context, IHttpClientFactory httpClien
         var content = new StringContent(requestBody, Encoding.UTF8, "application/json");
         
         var response = await client.PostAsync("/graphql", content);
+        
+        if (response == null)
+        {
+            logger.LogError("Received null response from JustWatch API");
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { error = "No response from upstream API" });
+            return;
+        }
+
         var responseBody = await response.Content.ReadAsStringAsync();
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)response.StatusCode;
         await context.Response.WriteAsync(responseBody);
     }
+    catch (HttpRequestException ex)
+    {
+        logger.LogError(ex, "HTTP error while proxying GraphQL request");
+        context.Response.StatusCode = 502;
+        await context.Response.WriteAsJsonAsync(new { error = "Failed to connect to upstream API", message = ex.Message });
+    }
+    catch (TaskCanceledException ex)
+    {
+        logger.LogError(ex, "GraphQL request timed out");
+        context.Response.StatusCode = 504;
+        await context.Response.WriteAsJsonAsync(new { error = "Request timed out", message = ex.Message });
+    }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error proxying GraphQL request");
+        logger.LogError(ex, "Unexpected error proxying GraphQL request");
         context.Response.StatusCode = 500;
-        await context.Response.WriteAsJsonAsync(new { error = "Proxy error", message = ex.Message });
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error", message = ex.Message });
     }
 });
 
@@ -72,28 +110,65 @@ app.MapGet("/content/urls", async (HttpContext context, IHttpClientFactory httpC
     try
     {
         var path = context.Request.Query["path"].ToString();
-        if (string.IsNullOrEmpty(path))
+        if (string.IsNullOrWhiteSpace(path))
         {
+            logger.LogWarning("Content URL request received with missing or empty path parameter");
             context.Response.StatusCode = 400;
-            await context.Response.WriteAsJsonAsync(new { error = "Missing path parameter" });
+            await context.Response.WriteAsJsonAsync(new { error = "Missing or invalid path parameter" });
             return;
         }
 
         logger.LogInformation("Proxying content URL request for path: {Path}", path);
 
         var client = httpClientFactory.CreateClient("JustWatchAPI");
+        
+        if (client == null)
+        {
+            logger.LogError("Failed to create HTTP client for JustWatch API");
+            context.Response.StatusCode = 500;
+            await context.Response.WriteAsJsonAsync(new { error = "Internal server error - HTTP client unavailable" });
+            return;
+        }
+
         var response = await client.GetAsync($"/content/urls?path={Uri.EscapeDataString(path)}");
+        
+        if (response == null)
+        {
+            logger.LogError("Received null response from JustWatch API for path: {Path}", LoggingHelper.SanitizeForLogging(path));
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { error = "No response from upstream API" });
+            return;
+        }
+
         var responseBody = await response.Content.ReadAsStringAsync();
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)response.StatusCode;
         await context.Response.WriteAsync(responseBody);
     }
+    catch (HttpRequestException ex)
+    {
+        logger.LogError(ex, "HTTP error while proxying content URL request");
+        context.Response.StatusCode = 502;
+        await context.Response.WriteAsJsonAsync(new { error = "Failed to connect to upstream API", message = ex.Message });
+    }
+    catch (TaskCanceledException ex)
+    {
+        logger.LogError(ex, "Content URL request timed out");
+        context.Response.StatusCode = 504;
+        await context.Response.WriteAsJsonAsync(new { error = "Request timed out", message = ex.Message });
+    }
+    catch (UriFormatException ex)
+    {
+        logger.LogError(ex, "Invalid URI format in path parameter");
+        context.Response.StatusCode = 400;
+        await context.Response.WriteAsJsonAsync(new { error = "Invalid path format", message = ex.Message });
+    }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error proxying content URL request");
+        logger.LogError(ex, "Unexpected error proxying content URL request");
         context.Response.StatusCode = 500;
-        await context.Response.WriteAsJsonAsync(new { error = "Proxy error", message = ex.Message });
+        await context.Response.WriteAsJsonAsync(new { error = "Internal server error", message = ex.Message });
     }
 });
 
